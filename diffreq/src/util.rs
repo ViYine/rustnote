@@ -1,5 +1,6 @@
 use std::fmt;
-
+use anyhow::Result;
+use string_builder::Builder;
 use console::{style, Style};
 use similar::{ChangeTag, TextDiff};
 
@@ -14,20 +15,13 @@ impl fmt::Display for Line {
     }
 }
 
-fn main() {
-    // let args: Vec<_> = std::env::args_os().collect();
-    // if args.len() != 3 {
-    //     eprintln!("usage: terminal-inline [old] [new]");
-    //     exit(1);
-    // }
-
-    let old = "hello world".into(); //read(&args[1]).unwrap();
-    let new = "hello ".into(); //read(&args[2]).unwrap();
-    let diff = TextDiff::from_lines(old, new);
+pub fn text_diff(text1: &str, text2: &str) -> Result<String> {
+    let mut output_builder = Builder::default();
+    let diff = TextDiff::from_lines(text1, text2);
 
     for (idx, group) in diff.grouped_ops(3).iter().enumerate() {
         if idx > 0 {
-            println!("{:-^1$}", "-", 80);
+           output_builder.append(format!("{:-^1$}\n", "-", 80));
         }
         for op in group {
             for change in diff.iter_inline_changes(op) {
@@ -36,23 +30,24 @@ fn main() {
                     ChangeTag::Insert => ("+", Style::new().green()),
                     ChangeTag::Equal => (" ", Style::new().dim()),
                 };
-                print!(
+                output_builder.append(format!(
                     "{}{} |{}",
                     style(Line(change.old_index())).dim(),
                     style(Line(change.new_index())).dim(),
                     s.apply_to(sign).bold(),
-                );
+                ));
                 for (emphasized, value) in change.iter_strings_lossy() {
                     if emphasized {
-                        print!("{}", s.apply_to(value).underlined().on_black());
+                        output_builder.append(format!("{}", s.apply_to(value).underlined().on_black()));
                     } else {
-                        print!("{}", s.apply_to(value));
+                        output_builder.append(format!("{}", s.apply_to(value)));
                     }
                 }
                 if change.missing_newline() {
-                    println!();
+                    output_builder.append("\n");
                 }
             }
         }
     }
+    Ok(output_builder.string()?)
 }

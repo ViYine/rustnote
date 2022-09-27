@@ -35,5 +35,35 @@ todo:
     skip_headers:
       - set-cookie
       - date
-      - via
+      - report-to
       - x-amz-cf-id
+      - age
+    skip_body:
+      - id
+
+stack:
+  req1:
+    method: GET
+    url: https://www.zsxg.cn/api/v2/capital/info
+    # headers:
+    #     user-agent: Aloha
+    params:
+      code: 688122.SH
+      yearNum: 12
+  req2:
+    method: GET
+    url: https://www.zsxg.cn/api/v2/capital/info
+    # headers:
+    #     user-agent: Aloha
+    params:
+      code: 688123.SH
+      yearNum: 12
+  res:
+    skip_headers:
+      - set-cookie
+      - date
+      - report-to
+      - x-amz-cf-id
+      - age
+    skip_body:
+      - id
