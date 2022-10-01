@@ -21,8 +21,8 @@ fn main() {
     //     exit(1);
     // }
 
-    let old = "hello world".into(); //read(&args[1]).unwrap();
-    let new = "hello ".into(); //read(&args[2]).unwrap();
+    let old = "hello world"; //read(&args[1]).unwrap();
+    let new = "hello "; //read(&args[2]).unwrap();
     let diff = TextDiff::from_lines(old, new);
 
     for (idx, group) in diff.grouped_ops(3).iter().enumerate() {

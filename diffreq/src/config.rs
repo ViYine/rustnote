@@ -5,7 +5,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
-use crate::{ExtraArgs, RequestProfile, ResponseProfile, util::text_diff};
+use crate::{util::text_diff, ExtraArgs, RequestProfile, ResponseProfile};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DiffConfig {
@@ -57,9 +57,9 @@ impl DiffProfile {
         let output = text_diff(&text1, &text2)?;
         // println!("profile: {:?}", &self);
         // println!("extra_prams: {:?}", &args);
-        println!("{}", output);
+        // println!("{}", output);
 
-        Ok("".to_string())
+        Ok(output)
 
         // todo!()
     }

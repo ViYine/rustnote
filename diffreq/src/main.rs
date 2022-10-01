@@ -5,7 +5,7 @@ use diffreq::{
     cli::{Action, Args, RunArgs},
     DiffConfig,
 };
-use tokio;
+use std::io::{self, Write};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -26,6 +26,10 @@ async fn run(args: RunArgs) -> Result<()> {
         anyhow::anyhow!("Profile: {} not found in config: {}", profile_name, config)
     })?;
     let extra_args = args.extra_params.into();
-    profile.diff(extra_args).await?;
+    let diff_text = profile.diff(extra_args).await?;
+    let mut stdout = io::stdout().lock();
+    stdout.write_all(diff_text.as_bytes())?;
+    // print to stdout
+
     Ok(())
 }

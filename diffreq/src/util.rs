@@ -1,8 +1,8 @@
-use std::fmt;
 use anyhow::Result;
-use string_builder::Builder;
 use console::{style, Style};
 use similar::{ChangeTag, TextDiff};
+use std::fmt;
+use string_builder::Builder;
 
 struct Line(Option<usize>);
 
@@ -21,7 +21,7 @@ pub fn text_diff(text1: &str, text2: &str) -> Result<String> {
 
     for (idx, group) in diff.grouped_ops(3).iter().enumerate() {
         if idx > 0 {
-           output_builder.append(format!("{:-^1$}\n", "-", 80));
+            output_builder.append(format!("{:-^1$}\n", "-", 80));
         }
         for op in group {
             for change in diff.iter_inline_changes(op) {
@@ -38,7 +38,8 @@ pub fn text_diff(text1: &str, text2: &str) -> Result<String> {
                 ));
                 for (emphasized, value) in change.iter_strings_lossy() {
                     if emphasized {
-                        output_builder.append(format!("{}", s.apply_to(value).underlined().on_black()));
+                        output_builder
+                            .append(format!("{}", s.apply_to(value).underlined().on_black()));
                     } else {
                         output_builder.append(format!("{}", s.apply_to(value)));
                     }

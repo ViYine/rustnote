@@ -45,7 +45,7 @@ pub struct ResponseExt(Response);
 impl RequestProfile {
     pub async fn send(&self, args: &ExtraArgs) -> Result<ResponseExt> {
         // args merge to self
-        let (query, header, body) = self.generate(&args)?;
+        let (query, header, body) = self.generate(args)?;
         // create client
         let cli = Client::new();
         // fill query, headers, and body
@@ -95,12 +95,11 @@ impl RequestProfile {
     }
 }
 
-
 fn get_content_type(headers: &HeaderMap) -> Option<String> {
     headers
-            .get(CONTENT_TYPE)
-            .map(|v| v.to_str().unwrap().split(";").next())
-            .flatten().map(|v| v.to_string())
+        .get(CONTENT_TYPE)
+        .and_then(|v| v.to_str().unwrap().split(';').next())
+        .map(|v| v.to_string())
 }
 
 impl ResponseExt {
@@ -109,35 +108,53 @@ impl ResponseExt {
         let mut output_builder = Builder::default();
         let first_line = format!("{:?} {}\r\n", self.0.version(), self.0.status());
         output_builder.append(first_line);
-        let res_headers = self.0.headers();
-        let content_type = get_content_type(res_headers).clone();
-        for (k, v) in res_headers.iter() {
-            if res.skip_headers.contains(&k.to_string()) {
-                continue;
-            }
-           output_builder.append(format!("{}: {}\r\n", &k.as_str(), v.to_str()?));
-        }
-        output_builder.append("\r\n");
-        
+        let output = get_header_text(self.0.headers(), &res.skip_headers)?;
+        output_builder.append(output);
+
+        let content_type = get_content_type(self.0.headers()).clone();
         let text = self.0.text().await?;
         // let ct = get_content_type(res_headers);
         // 根据content_type 反序列化body
         match content_type.as_deref() {
             Some("application/json") => {
-                let mut out_val: serde_json::Value = serde_json::from_str(&text)?;
-                let res_val = out_val.as_object_mut()
-                .ok_or_else(|| anyhow::anyhow!("unsupport json type"))?;
-                for key in &res.skip_body {
-                    res_val.remove(key);
-                }
-                output_builder.append(format!("{}", serde_json::to_string_pretty(&res_val)?));
-            },
+                let output = filter_json_text(&text, &res.skip_body)?;
+                output_builder.append(output);
+                Ok(output_builder.string()?)
+            }
             // Some("application/x-www-form-urlencoded" | "multipart/from-data") => {
             //     todo!()
             // },
             // todo!() add other content-type support
-            _ => return  Err(anyhow::anyhow!("unsupport response application type")),
-        };
-        Ok(output_builder.string()?)
+            // _ => return Err(anyhow::anyhow!("unsupport response application type")),
+            _ => {
+                // todo!() add other content-type support, now just return text
+                Ok(text)
+            }
+        }
     }
+}
+
+fn get_header_text(headers: &HeaderMap, skip_header: &[String]) -> Result<String> {
+    let mut output_builder = Builder::default();
+    // let res_headers = self.0.headers();
+
+    for (k, v) in headers.iter() {
+        if skip_header.contains(&k.to_string()) {
+            continue;
+        }
+        output_builder.append(format!("{}: {}\r\n", &k.as_str(), v.to_str()?));
+    }
+    output_builder.append("\r\n");
+    Ok((output_builder.string())?)
+}
+
+fn filter_json_text(text: &str, skip_body: &[String]) -> Result<String> {
+    let mut out_val: serde_json::Value = serde_json::from_str(text)?;
+    let res_val = out_val
+        .as_object_mut()
+        .ok_or_else(|| anyhow::anyhow!("unsupport json type"))?;
+    for key in skip_body {
+        res_val.remove(key);
+    }
+    Ok(serde_json::to_string_pretty(&res_val)?)
 }
