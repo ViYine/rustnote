@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use serde::{Deserialize, Serialize};
 use tokio::fs;
@@ -19,7 +19,13 @@ pub struct DiffProfile {
     pub req1: RequestProfile,
     pub req2: RequestProfile,
     // 响应中有需要skip 的阈，
+    #[serde(skip_serializing_if = "is_defalult", default)]
     pub res: ResponseProfile,
+}
+
+// 如果是default 值则不序列化
+fn is_defalult<T: PartialEq + Default>(v: &T) -> bool {
+    v == &T::default()
 }
 
 impl DiffConfig {
@@ -31,7 +37,18 @@ impl DiffConfig {
 
     // 从字符串读
     pub fn from_yaml(content: &str) -> Result<Self> {
-        Ok(serde_yaml::from_str(content)?)
+        let config: Self = serde_yaml::from_str(content)?;
+        config.validate()?;
+        Ok(config)
+    }
+    // validate
+    fn validate(&self) -> Result<()> {
+        for (name, profile) in &self.profiles {
+            profile
+                .validate()
+                .context(format!("validate prifile name: {}", name))?;
+        }
+        Ok(())
     }
 
     // 给一个 profile name 返回一个profile config
@@ -60,7 +77,14 @@ impl DiffProfile {
         // println!("{}", output);
 
         Ok(output)
+        // 错误处理：针对，程序范围的无效的输入，配置等作出更好的出错的提示。
 
         // todo!()
+    }
+
+    fn validate(&self) -> Result<()> {
+        self.req1.validate().context("req1 config error")?;
+        self.req2.validate().context("req2 config error")?;
+        Ok(())
     }
 }

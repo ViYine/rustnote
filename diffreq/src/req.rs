@@ -30,7 +30,7 @@ pub struct RequestProfile {
     pub body: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct ResponseProfile {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub skip_headers: Vec<String>,
@@ -92,6 +92,27 @@ impl RequestProfile {
             // todo!() add other content-type support
             _ => Err(anyhow::anyhow!("unsupport application type")),
         }
+    }
+
+    pub(crate) fn validate(&self) -> Result<()> {
+        if let Some(body) = &self.body {
+            if !body.is_object() {
+                return Err(anyhow::anyhow!(
+                    "Body must be an object: but got \n{}\n",
+                    serde_yaml::to_string(body)?
+                ));
+            }
+        }
+        if let Some(params) = &self.params {
+            if !params.is_object() {
+                return Err(anyhow::anyhow!(
+                    "Params must be an object: but got \n{}\n",
+                    serde_yaml::to_string(params)?
+                ));
+            }
+        }
+
+        Ok(())
     }
 }
 
