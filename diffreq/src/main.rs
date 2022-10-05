@@ -1,9 +1,11 @@
 // pub mod config;
 use anyhow::{anyhow, Result};
 use clap::Parser;
+use dialoguer::{theme, Input, MultiSelect};
 use diffreq::{
     cli::{Action, Args, RunArgs},
-    DiffConfig,
+    util::hightlight_text,
+    DiffConfig, DiffProfile, ExtraArgs, RequestProfile, ResponseProfile,
 };
 use std::io::{self, Write};
 
@@ -12,8 +14,52 @@ async fn main() -> Result<()> {
     let cli_args = Args::parse();
     match cli_args.action {
         Action::Run(run_args) => run(run_args).await?,
+        Action::Parse => parse_profile().await?,
         _ => Err(anyhow!("unknown action"))?,
     };
+    Ok(())
+}
+
+async fn parse_profile() -> Result<()> {
+    // TODO: 交互式地生成profile
+    let theme = theme::ColorfulTheme::default();
+    let url1: String = Input::with_theme(&theme)
+        .with_prompt("Url1")
+        .interact_text()?;
+    let url2: String = Input::with_theme(&theme)
+        .with_prompt("Url2")
+        .interact_text()?;
+
+    // RequestProfile from String
+    // RequestProfile 需要实现FromStr
+    let req1: RequestProfile = url1.parse()?;
+    let req2: RequestProfile = url2.parse()?;
+
+    let profile_name: String = Input::with_theme(&theme)
+        .with_prompt("Profile")
+        .interact_text()?;
+
+    let response1 = req1.send(&ExtraArgs::default()).await?;
+    let headers_key = response1.get_header_keys();
+    let chosen = MultiSelect::with_theme(&theme)
+        .with_prompt("Select headers to skip")
+        .items(&headers_key)
+        .interact()?;
+    let skip_headers: Vec<String> = chosen.iter().map(|i| headers_key[*i].to_string()).collect();
+
+    // response profile contract
+    // todo: implement skip_body
+    let res: ResponseProfile = ResponseProfile::new(skip_headers, vec![]);
+    let profile: DiffProfile = DiffProfile::new(req1, req2, res);
+    // config
+    let config: DiffConfig = DiffConfig::new(vec![(profile_name, profile)].into_iter().collect());
+    let result = serde_yaml::to_string(&config)?;
+
+    // output to stdout
+    let mut std = std::io::stdout().lock();
+    write!(std, "---\n{}", hightlight_text(&result, "yaml")?)?;
+
+    // println!("prase_profile..., {} ,{}, {}", url1, url2, profile);
     Ok(())
 }
 

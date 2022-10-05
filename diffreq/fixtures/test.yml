@@ -11,7 +11,7 @@ rust:
     method: GET
     url: https://www.rust-lang.org/
     params:
-      - hello: world
+      hello: world
   res:
     skip_headers:
       - set-cookie
@@ -68,3 +68,24 @@ stack:
       - age
     skip_body:
       - id
+
+todo1:
+  req1:
+    method: GET
+    url: https://jsonplaceholder.typicode.com/todos/1
+    params:
+      a: 1
+      b: 2
+  req2:
+    method: GET
+    url: https://jsonplaceholder.typicode.com/todos/2
+    params:
+      c: 1
+      d: 4
+  res:
+    skip_headers:
+    - date
+    - content-length
+    - x-ratelimit-remaining
+    - access-control-allow-credentials
+    - expires

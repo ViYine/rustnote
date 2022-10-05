@@ -29,6 +29,9 @@ fn is_defalult<T: PartialEq + Default>(v: &T) -> bool {
 }
 
 impl DiffConfig {
+    pub fn new(profiles: HashMap<String, DiffProfile>) -> Self {
+        Self { profiles }
+    }
     // 从文件读
     pub async fn load_yaml(path: &str) -> Result<Self> {
         let content = fs::read_to_string(path).await?;
@@ -58,6 +61,9 @@ impl DiffConfig {
 }
 
 impl DiffProfile {
+    pub fn new(req1: RequestProfile, req2: RequestProfile, res: ResponseProfile) -> Self {
+        Self { req1, req2, res }
+    }
     pub async fn diff(&self, args: ExtraArgs) -> Result<String> {
         // _args 是需要override 的参数（由用户通过命令行传入）
         // 从命令行拿到的参数，先合并到对应的：req，res

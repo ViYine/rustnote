@@ -17,7 +17,7 @@ pub struct RequestProfile {
     pub method: Method,
     pub url: Url,
     // 在默认没有传值的时候，不进行序列化
-    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[serde(skip_serializing_if = "empty_json_value", default)]
     pub params: Option<serde_json::Value>,
     #[serde(
         with = "http_serde::header_map",
@@ -26,8 +26,14 @@ pub struct RequestProfile {
     )]
     pub headers: HeaderMap,
     // 在默认没有传值的时候，不进行序列化
-    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[serde(skip_serializing_if = "empty_json_value", default)]
     pub body: Option<serde_json::Value>,
+}
+
+fn empty_json_value(val: &Option<serde_json::Value>) -> bool {
+    val.as_ref().map_or(true, |v| {
+        v.is_null() || (v.is_object() && v.as_object().unwrap().is_empty())
+    })
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq, Eq)]
@@ -38,11 +44,57 @@ pub struct ResponseProfile {
     pub skip_body: Vec<String>,
 }
 
+impl ResponseProfile {
+    pub fn new(skip_headers: Vec<String>, skip_body: Vec<String>) -> Self {
+        Self {
+            skip_headers,
+            skip_body,
+        }
+    }
+}
+
 // 对拿到的reqwest response 做了一次封装
 #[derive(Debug)]
 pub struct ResponseExt(Response);
 
+impl FromStr for RequestProfile {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let mut url = Url::parse(s)?;
+        let querys = url.query_pairs();
+        let mut params = json!({});
+        for (key, value) in querys {
+            params[&*key] = value.parse()?
+        }
+        // url set query none
+        url.set_query(None);
+        Ok(RequestProfile::new(
+            Method::GET,
+            url,
+            Some(params),
+            HeaderMap::new(),
+            None,
+        ))
+    }
+}
+
 impl RequestProfile {
+    pub fn new(
+        method: Method,
+        url: Url,
+        params: Option<serde_json::Value>,
+        headers: HeaderMap,
+        body: Option<serde_json::Value>,
+    ) -> Self {
+        Self {
+            method,
+            url,
+            params,
+            headers,
+            body,
+        }
+    }
     pub async fn send(&self, args: &ExtraArgs) -> Result<ResponseExt> {
         // args merge to self
         let (query, header, body) = self.generate(args)?;
@@ -124,6 +176,10 @@ fn get_content_type(headers: &HeaderMap) -> Option<String> {
 }
 
 impl ResponseExt {
+    pub fn get_header_keys(self) -> Vec<String> {
+        let res_headers = self.0.headers();
+        res_headers.iter().map(|(k, _)| k.to_string()).collect()
+    }
     pub async fn filter_text(self, res: &ResponseProfile) -> Result<String> {
         // ResponseExt 里面是原始的请求，需要skip 的 阈 在res 中指定了，所以需要返回，res 中不skip 的 key 的值
         let mut output_builder = Builder::default();
