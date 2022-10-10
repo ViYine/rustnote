@@ -1,0 +1,7 @@
+---
+todo:
+  url: https://jsonplaceholder.typicode.com/todos/2
+  params:
+    a: 1
+    b: 2
+  method: POST

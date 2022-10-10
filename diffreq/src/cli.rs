@@ -1,41 +1,6 @@
 use anyhow::{anyhow, Result};
-use clap::{Parser, Subcommand};
 
 use crate::ExtraArgs;
-
-/// Diff two http request and compare the difference of the response
-#[derive(Debug, Clone, Parser)]
-pub struct Args {
-    #[clap(subcommand)]
-    pub action: Action,
-}
-
-#[derive(Debug, Clone, Subcommand)]
-#[non_exhaustive]
-pub enum Action {
-    /// Diff two API response based on the given profile
-    Run(RunArgs),
-    /// Parse the given url and name into a profile output
-    Parse,
-}
-
-#[derive(Debug, Clone, Parser)]
-pub struct RunArgs {
-    /// Profile name
-    #[clap(short, long, value_parser)]
-    pub profile: String,
-
-    /// Override args, Could be used to override the query, headers,and body of the request
-    /// For query parameters: use `-e key=value`
-    /// For headers: use `-e %key=value`
-    /// For body: use `-e #key=value`
-    #[clap(short, long, value_parser=parse_key_val, number_of_values=1)]
-    pub extra_params: Vec<KeyVal>,
-
-    /// Configuration to be used
-    #[clap(short, long, value_parser)]
-    pub config: Option<String>,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KeyValType {
@@ -51,7 +16,7 @@ pub struct KeyVal {
     val: String,
 }
 
-fn parse_key_val(s: &str) -> Result<KeyVal> {
+pub fn parse_key_val(s: &str) -> Result<KeyVal> {
     let mut parts = s.splitn(2, '=');
     let key = parts
         .next()
