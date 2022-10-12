@@ -1,15 +1,103 @@
+pub mod xdiff;
+pub mod xreq;
+
 use std::str::FromStr;
 
 use crate::ExtraArgs;
-use anyhow::Result;
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue, CONTENT_TYPE},
     Client, Method, Response,
 };
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
 use string_builder::Builder;
 use url::Url;
+
+use crate::cli::parse_key_val;
+use crate::cli::KeyVal;
+use anyhow::Result;
+use async_trait::async_trait;
+
+use clap::{Parser, Subcommand};
+
+use tokio::fs;
+pub use xdiff::ResponseProfile;
+
+// load config from yaml file or string trait
+#[async_trait]
+pub trait ConfigLoad
+where
+    Self: Sized + ConfigValidate + DeserializeOwned,
+{
+    /// load yaml config from file
+    async fn load_yaml(path: &str) -> Result<Self> {
+        let content = fs::read_to_string(path).await?;
+        // Self::from_yaml(&content)
+        let config: Self = serde_yaml::from_str(&content)?;
+        // 需要使用validate方法来检查配置是否合法，所以Self需要实现ConfigValidate trait
+        config.validate()?;
+        Ok(config)
+    }
+
+    /// load yaml config from string
+    async fn from_yaml(content: &str) -> Result<Self> {
+        let config: Self = serde_yaml::from_str(content)?;
+        // 需要使用validate方法来检查配置是否合法，所以Self需要实现ConfigValidate trait
+        config.validate()?;
+        Ok(config)
+    }
+}
+
+// validate config trait
+pub trait ConfigValidate {
+    fn validate(&self) -> Result<()>;
+}
+
+// get profile from config trait， 当前这个trait 的意义可能不大，会增加代码量
+pub trait GetProfile {
+    // 不同的config有不同的profile类型，所以这里用泛型
+    type Profile;
+    fn get_profile(&self, name: &str) -> Option<&Self::Profile>;
+}
+
+/// Diff two http request and compare the difference of the response
+#[derive(Debug, Clone, Parser)]
+pub struct Args {
+    #[clap(subcommand)]
+    pub action: Action,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+#[non_exhaustive]
+pub enum Action {
+    /// Diff two API response based on the given profile
+    Run(RunArgs),
+    /// Parse the given url and name into a profile output
+    Parse,
+}
+
+#[derive(Debug, Clone, Parser)]
+pub struct RunArgs {
+    /// Profile name
+    #[clap(short, long, value_parser)]
+    pub profile: String,
+
+    /// Override args, Could be used to override the query, headers,and body of the request
+    /// For query parameters: use `-e key=value`
+    /// For headers: use `-e %key=value`
+    /// For body: use `-e #key=value`
+    #[clap(short, long, value_parser=parse_key_val, number_of_values=1)]
+    pub extra_params: Vec<KeyVal>,
+
+    /// Configuration to be used
+    #[clap(short, long, value_parser)]
+    pub config: Option<String>,
+}
+
+// 如果是default 值则不序列化
+fn is_default<T: PartialEq + Default>(v: &T) -> bool {
+    v == &T::default()
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RequestProfile {
@@ -34,23 +122,6 @@ fn empty_json_value(val: &Option<serde_json::Value>) -> bool {
     val.as_ref().map_or(true, |v| {
         v.is_null() || (v.is_object() && v.as_object().unwrap().is_empty())
     })
-}
-
-#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Eq)]
-pub struct ResponseProfile {
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub skip_headers: Vec<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub skip_body: Vec<String>,
-}
-
-impl ResponseProfile {
-    pub fn new(skip_headers: Vec<String>, skip_body: Vec<String>) -> Self {
-        Self {
-            skip_headers,
-            skip_body,
-        }
-    }
 }
 
 // 对拿到的reqwest response 做了一次封装

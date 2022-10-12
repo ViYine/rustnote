@@ -1,11 +1,28 @@
+use crate::{util::text_diff, ExtraArgs};
 use std::collections::HashMap;
+
+use super::{is_default, ConfigLoad, ConfigValidate, GetProfile, RequestProfile};
 
 use anyhow::{Context, Result};
 
 use serde::{Deserialize, Serialize};
-use tokio::fs;
 
-use crate::{util::text_diff, ExtraArgs, RequestProfile, ResponseProfile};
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct ResponseProfile {
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub skip_headers: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub skip_body: Vec<String>,
+}
+
+impl ResponseProfile {
+    pub fn new(skip_headers: Vec<String>, skip_body: Vec<String>) -> Self {
+        Self {
+            skip_headers,
+            skip_body,
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DiffConfig {
@@ -19,44 +36,24 @@ pub struct DiffProfile {
     pub req1: RequestProfile,
     pub req2: RequestProfile,
     // 响应中有需要skip 的阈，
-    #[serde(skip_serializing_if = "is_defalult", default)]
+    #[serde(skip_serializing_if = "is_default", default)]
     pub res: ResponseProfile,
 }
 
-// 如果是default 值则不序列化
-fn is_defalult<T: PartialEq + Default>(v: &T) -> bool {
-    v == &T::default()
+// 直接使用公共的 config load trait 的实现，不需要重复写
+impl ConfigLoad for DiffConfig {}
+
+impl GetProfile for DiffConfig {
+    // 关联类型为 DiffProfile
+    type Profile = DiffProfile;
+    fn get_profile(&self, name: &str) -> Option<&Self::Profile> {
+        self.profiles.get(name)
+    }
 }
 
 impl DiffConfig {
     pub fn new(profiles: HashMap<String, DiffProfile>) -> Self {
         Self { profiles }
-    }
-    // 从文件读
-    pub async fn load_yaml(path: &str) -> Result<Self> {
-        let content = fs::read_to_string(path).await?;
-        Self::from_yaml(&content)
-    }
-
-    // 从字符串读
-    pub fn from_yaml(content: &str) -> Result<Self> {
-        let config: Self = serde_yaml::from_str(content)?;
-        config.validate()?;
-        Ok(config)
-    }
-    // validate
-    fn validate(&self) -> Result<()> {
-        for (name, profile) in &self.profiles {
-            profile
-                .validate()
-                .context(format!("validate prifile name: {}", name))?;
-        }
-        Ok(())
-    }
-
-    // 给一个 profile name 返回一个profile config
-    pub fn get_profile(&self, name: &str) -> Option<&DiffProfile> {
-        self.profiles.get(name)
     }
 }
 
@@ -87,10 +84,25 @@ impl DiffProfile {
 
         // todo!()
     }
+}
 
+// validate for diff profile
+impl ConfigValidate for DiffProfile {
     fn validate(&self) -> Result<()> {
         self.req1.validate().context("req1 config error")?;
         self.req2.validate().context("req2 config error")?;
+        Ok(())
+    }
+}
+
+// validate
+impl ConfigValidate for DiffConfig {
+    fn validate(&self) -> Result<()> {
+        for (name, profile) in &self.profiles {
+            profile
+                .validate()
+                .context(format!("validate prifile name: {}", name))?;
+        }
         Ok(())
     }
 }

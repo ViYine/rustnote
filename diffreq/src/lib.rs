@@ -1,9 +1,11 @@
 mod config;
-pub use config::{DiffConfig, DiffProfile};
+pub use config::{
+    xdiff::{DiffConfig, DiffProfile, ResponseProfile},
+    xreq::RequestConfig,
+    Action, Args, ConfigLoad, ConfigValidate, GetProfile, RequestProfile, RunArgs,
+};
 pub mod cli;
-pub mod req;
 pub mod util;
-pub use req::{RequestProfile, ResponseProfile};
 
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct ExtraArgs {
