@@ -32,15 +32,11 @@ where
     /// load yaml config from file
     async fn load_yaml(path: &str) -> Result<Self> {
         let content = fs::read_to_string(path).await?;
-        // Self::from_yaml(&content)
-        let config: Self = serde_yaml::from_str(&content)?;
-        // 需要使用validate方法来检查配置是否合法，所以Self需要实现ConfigValidate trait
-        config.validate()?;
-        Ok(config)
+        Self::from_yaml(&content)
     }
 
     /// load yaml config from string
-    async fn from_yaml(content: &str) -> Result<Self> {
+    fn from_yaml(content: &str) -> Result<Self> {
         let config: Self = serde_yaml::from_str(content)?;
         // 需要使用validate方法来检查配置是否合法，所以Self需要实现ConfigValidate trait
         config.validate()?;

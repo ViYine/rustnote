@@ -1,9 +1,6 @@
 use clap::Parser;
-use dialoguer::{theme, Input, MultiSelect};
-use diffreq::{
-    util::hightlight_text, Action, Args, ConfigLoad, DiffConfig, DiffProfile, ExtraArgs,
-    GetProfile, RequestConfig, RequestProfile, ResponseProfile, RunArgs,
-};
+
+use diffreq::{Action, Args, ConfigLoad, GetProfile, RequestConfig, RunArgs};
 use std::io::{self, Write};
 use string_builder::Builder;
 
