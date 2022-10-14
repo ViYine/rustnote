@@ -56,7 +56,11 @@ async fn parse_profile() -> Result<()> {
 
     // output to stdout
     let mut std = std::io::stdout().lock();
-    write!(std, "---\n{}", hightlight_text(&result, "yaml")?)?;
+    write!(
+        std,
+        "---\n{}",
+        hightlight_text(&result, "yaml", "base16-ocean.dark")?
+    )?;
 
     // println!("prase_profile..., {} ,{}, {}", url1, url2, profile);
     Ok(())

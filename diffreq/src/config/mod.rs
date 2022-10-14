@@ -32,15 +32,11 @@ where
     /// load yaml config from file
     async fn load_yaml(path: &str) -> Result<Self> {
         let content = fs::read_to_string(path).await?;
-        // Self::from_yaml(&content)
-        let config: Self = serde_yaml::from_str(&content)?;
-        // 需要使用validate方法来检查配置是否合法，所以Self需要实现ConfigValidate trait
-        config.validate()?;
-        Ok(config)
+        Self::from_yaml(&content)
     }
 
     /// load yaml config from string
-    async fn from_yaml(content: &str) -> Result<Self> {
+    fn from_yaml(content: &str) -> Result<Self> {
         let config: Self = serde_yaml::from_str(content)?;
         // 需要使用validate方法来检查配置是否合法，所以Self需要实现ConfigValidate trait
         config.validate()?;
@@ -247,6 +243,10 @@ fn get_content_type(headers: &HeaderMap) -> Option<String> {
 }
 
 impl ResponseExt {
+    pub fn into_inner(self) -> Response {
+        self.0
+    }
+
     pub fn get_header_keys(self) -> Vec<String> {
         let res_headers = self.0.headers();
         res_headers.iter().map(|(k, _)| k.to_string()).collect()
@@ -254,39 +254,27 @@ impl ResponseExt {
     pub async fn filter_text(self, res: &ResponseProfile) -> Result<String> {
         // ResponseExt 里面是原始的请求，需要skip 的 阈 在res 中指定了，所以需要返回，res 中不skip 的 key 的值
         let mut output_builder = Builder::default();
-        let first_line = format!("{:?} {}\r\n", self.0.version(), self.0.status());
-        output_builder.append(first_line);
-        let output = get_header_text(self.0.headers(), &res.skip_headers)?;
-        output_builder.append(output);
+        // let first_line = format!("{:?} {}\r\n", self.0.version(), self.0.status());
+        // output_builder.append(first_line);
+        // let output = get_header_text(self.0.headers(), &res.skip_headers)?;
+        // output_builder.append(output);
+        output_builder.append(get_status_text(&self.0)?);
+        output_builder.append(get_header_text(&self.0, &res.skip_headers)?);
+        output_builder.append(get_body_text(self.0, &res.skip_body).await?);
 
-        let content_type = get_content_type(self.0.headers()).clone();
-        let text = self.0.text().await?;
-        // let ct = get_content_type(res_headers);
-        // 根据content_type 反序列化body
-        match content_type.as_deref() {
-            Some("application/json") => {
-                let output = filter_json_text(&text, &res.skip_body)?;
-                output_builder.append(output);
-                Ok(output_builder.string()?)
-            }
-            // Some("application/x-www-form-urlencoded" | "multipart/from-data") => {
-            //     todo!()
-            // },
-            // todo!() add other content-type support
-            // _ => return Err(anyhow::anyhow!("unsupport response application type")),
-            _ => {
-                // todo!() add other content-type support, now just return text
-                Ok(text)
-            }
-        }
+        Ok(output_builder.string()?)
     }
 }
 
-fn get_header_text(headers: &HeaderMap, skip_header: &[String]) -> Result<String> {
+pub fn get_status_text(res: &Response) -> Result<String> {
+    Ok(format!("{:?} {}\r\n", res.version(), res.status()))
+}
+
+pub fn get_header_text(res: &Response, skip_header: &[String]) -> Result<String> {
     let mut output_builder = Builder::default();
     // let res_headers = self.0.headers();
 
-    for (k, v) in headers.iter() {
+    for (k, v) in res.headers().iter() {
         if skip_header.contains(&k.to_string()) {
             continue;
         }
@@ -294,6 +282,26 @@ fn get_header_text(headers: &HeaderMap, skip_header: &[String]) -> Result<String
     }
     output_builder.append("\r\n");
     Ok((output_builder.string())?)
+}
+
+pub async fn get_body_text(res: Response, skip_body: &[String]) -> Result<String> {
+    let mut output_builder = Builder::default();
+    let content_type = get_content_type(res.headers()).clone();
+    let text = res.text().await?;
+    // let ct = get_content_type(res_headers);
+    // 根据content_type 反序列化body
+    match content_type.as_deref() {
+        Some("application/json") => {
+            let output = filter_json_text(&text, skip_body)?;
+            output_builder.append(output);
+            Ok(output_builder.string()?)
+        }
+
+        _ => {
+            // todo!() add other content-type support, now just return text
+            Ok(text)
+        }
+    }
 }
 
 fn filter_json_text(text: &str, skip_body: &[String]) -> Result<String> {

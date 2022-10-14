@@ -57,7 +57,7 @@ pub fn text_diff(text1: &str, text2: &str) -> Result<String> {
     Ok(output_builder.string()?)
 }
 
-pub fn hightlight_text(text: &str, extension: &str) -> Result<String> {
+pub fn hightlight_text(text: &str, extension: &str, theme_str: &str) -> Result<String> {
     let mut output = Builder::default();
 
     // Load these once at the start of your program
@@ -67,7 +67,8 @@ pub fn hightlight_text(text: &str, extension: &str) -> Result<String> {
     let syntax = ps
         .find_syntax_by_extension(extension)
         .ok_or_else(|| anyhow::anyhow!("Invalid"))?;
-    let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+    // "base16-ocean.dark"
+    let mut h = HighlightLines::new(syntax, &ts.themes[theme_str]);
     for line in LinesWithEndings::from(text) {
         // LinesWithEndings enables use of newlines mode
         let ranges = h.highlight_line(line, &ps)?;

@@ -1,7 +1,12 @@
 ---
-todo:
-  url: https://jsonplaceholder.typicode.com/todos/2
-  params:
-    a: 1
-    b: 2
+price:
   method: POST
+  url: http://price.mofcom.gov.cn/datamofcom/front/price/pricequotation/priceQueryList
+  headers:
+    Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+  body:
+    seqno: 127
+    startTime: 20181003
+    endTime: 20221014
+    pageNumber: 1
+    pageSize: 15
