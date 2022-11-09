@@ -1,6 +1,6 @@
 fn main() {
     let inuput_nums = include_str!("fixtures/aoc2021_01.txt")
-        .split("\n")
+        .split('\n')
         .map(|x| x.parse::<i32>().unwrap())
         .collect::<Vec<i32>>();
 
@@ -14,23 +14,20 @@ fn main() {
     let part2 = count_inc(&window_nums);
     println!("part1: {}", part1);
     println!("part2: {}", part2);
-
 }
 
-fn count_inc(nums: &Vec<i32>) -> usize {
-    nums
-    .iter()
-    .enumerate()
-    .map(|(i, n)| {
-        if i == 0 {
-            return 0;
-        }
-        if n > &nums[i - 1] {
-            return 1;
-        }
-        0
-    })
-    .filter(|x| x == &1)
-    .count()
-
+fn count_inc(nums: &[i32]) -> usize {
+    nums.iter()
+        .enumerate()
+        .map(|(i, n)| {
+            if i == 0 {
+                return 0;
+            }
+            if n > &nums[i - 1] {
+                return 1;
+            }
+            0
+        })
+        .filter(|x| x == &1)
+        .count()
 }

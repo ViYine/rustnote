@@ -1,8 +1,7 @@
-
-use bytes::Bytes;
-use tokio::net::TcpListener;
-use futures::{SinkExt, StreamExt};
 use anyhow::Result;
+use bytes::Bytes;
+use futures::{SinkExt, StreamExt};
+use tokio::net::TcpListener;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 #[tokio::main]
@@ -17,7 +16,7 @@ async fn main() -> Result<()> {
         // tokio frame wrap
         let mut stream = Framed::new(stream, LengthDelimitedCodec::new());
         // therad spawn 会创建一个新的线程，处理新的连接
-        tokio::spawn(async move  {
+        tokio::spawn(async move {
             // get read data from steam
             // 从stream中读取数据 需要use futures::{SinkExt, StreamExt};
             while let Some(Ok(data)) = stream.next().await {
@@ -27,5 +26,4 @@ async fn main() -> Result<()> {
             }
         });
     }
-
 }

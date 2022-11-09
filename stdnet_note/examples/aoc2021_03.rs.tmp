@@ -1,0 +1,118 @@
+// fn main() {
+//     let input = include_str!("fixtures/aoc2021_03.txt");
+//     let all_vec = input
+//         .lines()
+//         .map(|s| {
+//             s.chars()
+//                 .map(|c| if c == '1' { 1 } else { 0 })
+//                 .collect::<Vec<_>>()
+//         })
+//         .collect::<Vec<_>>();
+
+//     solve_part1(&all_vec);
+//     solve_part2(&all_vec);
+// }
+
+// fn solve_part2(all_vec: &Vec<Vec<i32>>) {
+//     let mut cur_data = all_vec;
+//     let mut cur_index = 0;
+//     while cur_data.len() > 1 {
+//         let next_data = solve_part(cur_data, cur_index, true);
+//         cur_index += 1;
+//         cur_data = &next_data.clone();
+//     }
+// }
+
+// fn solve_part(data: &Vec<Vec<i32>>, idx: usize, por: bool, new_data: &mut Vec<Vec<i32>>) {
+//     if data.len() == 1 {
+//         new_data.push(data[0].clone());
+//         return;
+//     }
+//     // idx is the index of the column to check
+//     // target is the value to check for
+//     // por is true if we are checking for a 1, false if we are checking for a 0
+
+//     // get the all column of idx
+//     let col = data.iter().map(|v| v[idx]).collect::<Vec<_>>();
+//     // count the number of target values in the column
+//     let count_0 = col.iter().filter(|&&v| v == 0).count();
+//     let count_1 = col.iter().filter(|&&v| v == 1).count();
+//     let mut new_data_tmp = Vec::new();
+//     if por {
+//         // use max
+//         if count_1 >= count_0 {
+//             // get the rows where the column value is 1
+//             new_data_tmp = data
+//                 .iter()
+//                 .filter(|v| v[idx] == 1)
+//                 .map(|v| v.clone())
+//                 .collect::<Vec<_>>();
+//         } else {
+//             // get the rows where the column value is 0
+//             new_data_tmp = data
+//                 .iter()
+//                 .filter(|v| v[idx] == 0)
+//                 .map(|v| v.clone())
+//                 .collect::<Vec<_>>();
+//         }
+//     } else {
+//         // use min
+//         if count_1 < count_0 {
+//             // get the rows where the column value is 1
+//             new_data_tmp = data
+//                 .iter()
+//                 .filter(|v| v[idx] == 1)
+//                 .map(|v| v.clone())
+//                 .collect::<Vec<_>>();
+//         } else {
+//             // get the rows where the column value is 0
+//             new_data_tmp = data
+//                 .iter()
+//                 .filter(|v| v[idx] == 0)
+//                 .map(|v| v.clone())
+//                 .collect::<Vec<_>>();
+//         }
+//     }
+
+//     // new_data_tmp push to new_data
+//     for i in 0..new_data_tmp.len() {
+//         new_data.push(new_data_tmp[i].clone());
+//     }
+// }
+
+// fn solve_part1(data: &Vec<Vec<i32>>) {
+//     let one_len = data[0].len();
+//     let mut e = vec![];
+//     let mut g = vec![];
+//     for i in 0..one_len {
+//         let mut c_nums = vec![];
+//         for j in data.iter() {
+//             let cur = j[i];
+//             c_nums.push(cur);
+//         }
+//         let c1 = c_nums.iter().filter(|&x| *x == 1).count();
+//         let c0 = c_nums.iter().filter(|&x| *x == 0).count();
+//         if c1 > c0 {
+//             e.push(1);
+//             g.push(0);
+//         } else {
+//             e.push(0);
+//             g.push(1);
+//         }
+//     }
+//     // convert to string
+//     let e_str = e.iter().map(|x| x.to_string()).collect::<String>();
+//     let g_str = g.iter().map(|x| x.to_string()).collect::<String>();
+//     println!("e: {:?}", e_str);
+//     println!("g: {:?}", g_str);
+//     // convert to i32
+//     let e_i32 = i32::from_str_radix(&e_str, 2).unwrap();
+//     let g_i32 = i32::from_str_radix(&g_str, 2).unwrap();
+//     println!("e: {:?}", e_i32);
+//     println!("g: {:?}", g_i32);
+//     println!("Part1: {}", e_i32 * g_i32);
+// }
+
+fn main () {
+
+}

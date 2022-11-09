@@ -10,3 +10,26 @@ price:
     endTime: 20221014
     pageNumber: 1
     pageSize: 15
+
+addfield:
+  method: POST
+  url: http://tdea.midas.boss.com/admin/midas/index
+  headers:
+    Content-Type: application/json;charset=UTF-8
+    Cookie: x_host_key_access=ac09530547452dd33a846db6d51deb67487f2527_s; x-client-ssid=183cf749fdf-66a1da42de42682c06bf46bb7d0845cf6bc6d2e7; PHPSESSID=lng0qelei1h39gh6fovfcnsic6; RIO_TCOA_TICKET=tof:TOF4TeyJ2IjoiNCIsInRpZCI6Im1BaWpaMTZ0aVRtdVhBOHV3SjRacHNjblNjd2psOWpnIiwiaXNzIjoiMTAuOTkuMTUuMzkiLCJpYXQiOiIyMDIyLTEwLTE5VDExOjMzOjUwLjA3MjE5NDk4MiswODowMCIsImF1ZCI6IjEwLjQzLjMuMTExIiwiaGFzaCI6IjkwODE0QTczQTNGMUFCRTU0MjRGRENBMEYzRDBDMEM0NjM4RjIzNDc1MTg0RUY1MDRCREU1RENBN0M1QkNERDgiLCJuaCI6IjdFNDk4MUJFOUQ2RDQyRDQwMUVEQjJBQjQ0NEFCMEMzNzgzMDM2MjI5MkREOTEyMUM2QkY5RDA3NEQyNkRGQjIifQ
+    Host: tdea.midas.boss.com
+    Origin: http://tdea.midas.boss.com
+    Referer: http://tdea.midas.boss.com/
+    # User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36
+    # X-Requested-With: XMLHttpRequest
+  body:
+    req: GateWay/addFieldDict
+    data:
+      field: DstUserIdGdt
+      version: "2022102001"
+      type: string
+      remark: gdt侧转入方的账户名称，
+      businessField: "2"
+      subFieldList: []
+      convertField: receiveruserid_gdt
+      changedConvertField: {}

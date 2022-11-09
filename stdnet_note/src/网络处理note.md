@@ -3,6 +3,14 @@
 bind(addr) -> listener(accept)-> stream(read,write),frame(在连接上做数据包的封装)
 connect(addr) -> stream(read,write)
 
+对于拿到的一个connect 如何在上面做封包，解包的操作？ -> Frame 相关的操作和接口。
+
+协议的Frame 的形式：
+
+1. 分隔符+消息数据: tokio-util:  LinesDelimited（处理 \r\n 分隔符
+2. 长度+消息数据: tokio-util: LengthDelimited（处理长度分隔符）
+3. 混用两者。
+
 ## loop+spawn
 
 

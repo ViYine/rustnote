@@ -1,4 +1,7 @@
-use std::{net::TcpStream, io::{Write, Read}};
+use std::{
+    io::{Read, Write},
+    net::TcpStream,
+};
 
 fn main() {
     // tcp stream 通过connect 连接到指定的地址

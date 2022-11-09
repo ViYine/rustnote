@@ -1,6 +1,4 @@
-
 use std::str::FromStr;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Coordinate {
@@ -18,7 +16,6 @@ impl Coordinate {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Target(i32);
 
-
 #[derive(Debug, Clone)]
 struct CoordinateError;
 
@@ -27,8 +24,7 @@ impl FromStr for Coordinate {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-
-        let split_s = s.splitn(2, " ").collect::<Vec<&str>>();
+        let split_s = s.splitn(2, ' ').collect::<Vec<&str>>();
         match split_s[0] {
             "forward" => {
                 let x = split_s[1].parse::<i32>().unwrap();
@@ -69,28 +65,30 @@ fn main() {
     println!("Part1: {}", final_coordinate.x * final_coordinate.y);
 
     // Part 2
-    let (final_target, final_coor) = input
-    .lines().fold((Target(0), Coordinate::new(0, 0)), |acc, s| {
-        let (mut target, mut coordinate) = acc;
-        let split_s = s.splitn(2, " ").collect::<Vec<&str>>();
-        match split_s[0] {
-            "forward" => {
-                let x = split_s[1].parse::<i32>().unwrap();
-                coordinate.x += x;
-                coordinate.y += target.0 * x;
-            }
-            "up" => {
-                let y = split_s[1].parse::<i32>().unwrap();
-                target.0 += y;
-            }
-            "down" => {
-                let y = split_s[1].parse::<i32>().unwrap();
-                target.0 -= y;
-            }
-            _ => {},
-        };
-        (target, coordinate)
-    });
+    let (final_target, final_coor) =
+        input
+            .lines()
+            .fold((Target(0), Coordinate::new(0, 0)), |acc, s| {
+                let (mut target, mut coordinate) = acc;
+                let split_s = s.splitn(2, ' ').collect::<Vec<&str>>();
+                match split_s[0] {
+                    "forward" => {
+                        let x = split_s[1].parse::<i32>().unwrap();
+                        coordinate.x += x;
+                        coordinate.y += target.0 * x;
+                    }
+                    "up" => {
+                        let y = split_s[1].parse::<i32>().unwrap();
+                        target.0 += y;
+                    }
+                    "down" => {
+                        let y = split_s[1].parse::<i32>().unwrap();
+                        target.0 -= y;
+                    }
+                    _ => {}
+                };
+                (target, coordinate)
+            });
 
     println!("Final target: {:?}", final_target);
     println!("Final coordinate: {:?}", final_coor);

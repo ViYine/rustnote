@@ -208,20 +208,41 @@ impl RequestProfile {
             Some("application/x-www-form-urlencoded" | "multipart/from-data") => {
                 Ok((query, headers, serde_urlencoded::to_string(&body)?))
             }
+            Some("text/plain" | "ad-bill-pb/base64") => Ok((query, headers, body.to_string())),
             // todo!() add other content-type support
             _ => Err(anyhow::anyhow!("unsupport application type")),
         }
     }
 
     pub(crate) fn validate(&self) -> Result<()> {
-        if let Some(body) = &self.body {
-            if !body.is_object() {
-                return Err(anyhow::anyhow!(
-                    "Body must be an object: but got \n{}\n",
-                    serde_yaml::to_string(body)?
-                ));
+        let headers = self.headers.clone();
+        let content_type = get_content_type(&headers);
+        match content_type.as_deref() {
+            Some(
+                "application/json" | "application/x-www-form-urlencoded" | "multipart/from-data",
+            ) => {
+                if let Some(body) = &self.body {
+                    if !body.is_object() {
+                        return Err(anyhow::anyhow!(
+                            "Body must be an object: but got \n{}\n",
+                            serde_yaml::to_string(body)?
+                        ));
+                    }
+                }
+            }
+            _ => {
+                // body is string
+                if let Some(body) = &self.body {
+                    if !body.is_string() {
+                        return Err(anyhow::anyhow!(
+                            "Body must be an string: but got \n{}\n",
+                            serde_yaml::to_string(body)?
+                        ));
+                    }
+                }
             }
         }
+
         if let Some(params) = &self.params {
             if !params.is_object() {
                 return Err(anyhow::anyhow!(
@@ -313,4 +334,69 @@ fn filter_json_text(text: &str, skip_body: &[String]) -> Result<String> {
         res_val.remove(key);
     }
     Ok(serde_json::to_string_pretty(&res_val)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use mockito::Mock;
+
+    use super::*;
+
+    #[test]
+    fn test_get_content_type() {
+        // 内部的private 的方法，不要测试，因为其内部实现不稳定
+        let mut headers = HeaderMap::new();
+        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+        assert_eq!(
+            get_content_type(&headers),
+            Some("application/json".to_string())
+        );
+        headers.insert(
+            CONTENT_TYPE,
+            HeaderValue::from_static("application/json; charset=utf-8"),
+        );
+        assert_eq!(
+            get_content_type(&headers),
+            Some("application/json".to_string())
+        );
+        headers.insert(
+            CONTENT_TYPE,
+            HeaderValue::from_static("application/json; charset=utf-8"),
+        );
+        assert_eq!(
+            get_content_type(&headers),
+            Some("application/json".to_string())
+        );
+        headers.insert(
+            CONTENT_TYPE,
+            HeaderValue::from_static("application/json; charset=utf-8"),
+        );
+        assert_eq!(
+            get_content_type(&headers),
+            Some("application/json".to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn request_profile_send_should_work() {
+        let _m = mock_for_url("/todo?a=1&b=2", "Get", json!({"id": 1, "name": "todo"}));
+        let url = format!("{}/todo", mockito::server_url());
+        let req = RequestProfile::new(
+            Method::GET,
+            Url::parse(&url).unwrap(),
+            Some(json!({"a": 1, "b": 2})),
+            HeaderMap::new(),
+            None,
+        );
+        let res = req.send(&Default::default()).await.unwrap().into_inner();
+        assert_eq!(res.status(), 200);
+    }
+
+    fn mock_for_url(path_and_query: &str, method: &str, body: serde_json::Value) -> Mock {
+        mockito::mock(method, path_and_query)
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(serde_json::to_string(&body).unwrap())
+            .create()
+    }
 }

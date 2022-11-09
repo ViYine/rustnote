@@ -1,5 +1,8 @@
-use std::{net::TcpListener, thread, io::{Read, Write}};
-
+use std::{
+    io::{Read, Write},
+    net::TcpListener,
+    thread,
+};
 
 fn main() {
     // 通过bind 创建一个 listener
@@ -20,5 +23,4 @@ fn main() {
             stream.write_all(b"pong").unwrap();
         });
     }
-
 }
