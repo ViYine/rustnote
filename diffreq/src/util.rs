@@ -2,6 +2,7 @@ use anyhow::Result;
 use console::{style, Style};
 use similar::{ChangeTag, TextDiff};
 use std::fmt;
+use std::io::Write;
 use string_builder::Builder;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::ThemeSet;
@@ -77,4 +78,24 @@ pub fn hightlight_text(text: &str, extension: &str, theme_str: &str) -> Result<S
         output.append(escaped);
     }
     Ok(output.string()?)
+}
+
+pub fn proess_error_output(result: Result<()>) -> Result<()> {
+    match result {
+        Ok(_) => {}
+        Err(e) => {
+            let stderr = std::io::stderr();
+            let mut err_out = stderr.lock();
+            let err_str = format!("{:?}", e);
+            if atty::is(atty::Stream::Stderr) {
+                let s = Style::new().red();
+                write!(err_out, "{}", s.apply_to(err_str))?;
+            } else {
+                write!(err_out, "{}", err_str)?;
+            }
+
+            std::process::exit(1);
+        }
+    };
+    Ok(())
 }

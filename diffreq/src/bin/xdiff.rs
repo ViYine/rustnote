@@ -1,8 +1,9 @@
 use clap::Parser;
 use dialoguer::{theme, Input, MultiSelect};
 use diffreq::{
-    util::hightlight_text, Action, Args, ConfigLoad, DiffConfig, DiffProfile, ExtraArgs,
-    GetProfile, RequestProfile, ResponseProfile, RunArgs,
+    util::{hightlight_text, proess_error_output},
+    Action, Args, ConfigLoad, DiffConfig, DiffProfile, ExtraArgs, GetProfile, RequestProfile,
+    ResponseProfile, RunArgs,
 };
 use std::io::{self, Write};
 
@@ -11,12 +12,12 @@ use anyhow::Result;
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli_args = Args::parse();
-    match cli_args.action {
-        Action::Run(run_args) => run(run_args).await?,
-        Action::Parse => parse_profile().await?,
-        _ => Err(anyhow::anyhow!("unknown action"))?,
+    let res = match cli_args.action {
+        Action::Run(run_args) => run(run_args).await,
+        Action::Parse => parse_profile().await,
+        _ => Err(anyhow::anyhow!("unknown action")),
     };
-    Ok(())
+    proess_error_output(res)
 }
 
 async fn parse_profile() -> Result<()> {
@@ -56,11 +57,17 @@ async fn parse_profile() -> Result<()> {
 
     // output to stdout
     let mut std = std::io::stdout().lock();
-    write!(
-        std,
-        "---\n{}",
-        hightlight_text(&result, "yaml", "base16-ocean.dark")?
-    )?;
+
+    if atty::is(atty::Stream::Stdout) {
+        std.write_all(hightlight_text(&result, "yaml", "Solarized (light)")?.as_bytes())?;
+    } else {
+        std.write_all(result.as_bytes())?;
+    }
+    // write!(
+    //     std,
+    //     "---\n{}",
+    //     hightlight_text(&result, "yaml", "base16-ocean.dark")?
+    // )?;
 
     // println!("prase_profile..., {} ,{}, {}", url1, url2, profile);
     Ok(())

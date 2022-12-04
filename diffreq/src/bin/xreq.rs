@@ -1,8 +1,9 @@
 use clap::Parser;
 use dialoguer::{theme, Input};
 use diffreq::{
-    get_body_text, get_header_text, get_status_text, util::hightlight_text, Action, Args,
-    ConfigLoad, GetProfile, RequestConfig, RequestProfile, RunArgs,
+    get_body_text, get_header_text, get_status_text,
+    util::{hightlight_text, proess_error_output},
+    Action, Args, ConfigLoad, GetProfile, RequestConfig, RequestProfile, RunArgs,
 };
 use std::io::{self, Write};
 use string_builder::Builder;
@@ -12,12 +13,13 @@ use anyhow::Result;
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli_args = Args::parse();
-    match cli_args.action {
-        Action::Run(run_args) => run(run_args).await?,
-        Action::Parse => parse_profile().await?,
-        _ => Err(anyhow::anyhow!("unknown action"))?,
+    let res = match cli_args.action {
+        Action::Run(run_args) => run(run_args).await,
+        Action::Parse => parse_profile().await,
+        _ => Err(anyhow::anyhow!("unknown action")),
     };
-    Ok(())
+
+    proess_error_output(res)
 }
 
 async fn run(args: RunArgs) -> Result<()> {
@@ -38,15 +40,22 @@ async fn run(args: RunArgs) -> Result<()> {
     // get res header and body text
     let mut output_builder = Builder::default();
 
-    output_builder.append(format!(
-        "{}{}",
-        hightlight_text(&status_text, "yaml", "Solarized (light)")?,
-        hightlight_text(&header_text, "yaml", "Solarized (dark)")?
-    ));
-    output_builder.append(format!(
-        "{}\n",
-        hightlight_text(&body, "json", "base16-ocean.dark")?
-    ));
+    if atty::is(atty::Stream::Stdout) {
+        output_builder.append(format!(
+            "{}{}",
+            hightlight_text(&status_text, "yaml", "Solarized (light)")?,
+            hightlight_text(&header_text, "yaml", "Solarized (dark)")?
+        ));
+        output_builder.append(format!(
+            "{}\n",
+            hightlight_text(&body, "json", "base16-ocean.dark")?
+        ));
+    } else {
+        // 只输出body
+        // output_builder.append(status_text);
+        // output_builder.append(header_text);
+        output_builder.append(body);
+    }
 
     let mut stdout = io::stdout().lock();
     stdout.write_all(output_builder.string()?.as_bytes())?;
@@ -76,12 +85,15 @@ async fn parse_profile() -> Result<()> {
 
     // output to stdout
     let mut std = std::io::stdout().lock();
-    write!(
-        std,
-        "---\n{}",
-        hightlight_text(&result, "yaml", "base16-ocean.dark")?
-    )?;
 
-    // println!("prase_profile..., {} ,{}, {}", url1, url2, profile);
+    if atty::is(atty::Stream::Stdout) {
+        write!(
+            std,
+            "---\n{}",
+            hightlight_text(&result, "yaml", "base16-ocean.dark")?
+        )?;
+    } else {
+        write!(std, "{}", result)?;
+    }
     Ok(())
 }

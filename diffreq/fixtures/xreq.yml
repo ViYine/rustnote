@@ -1,12 +1,39 @@
 ---
-price:
+price127:
   method: POST
   url: http://price.mofcom.gov.cn/datamofcom/front/price/pricequotation/priceQueryList
   headers:
     Content-Type: application/x-www-form-urlencoded; charset=UTF-8
   body:
-    seqno: 127
-    startTime: 20181003
+    seqno: 184
+    startTime: 20001003
     endTime: 20221014
     pageNumber: 1
     pageSize: 15
+
+price128:
+  method: POST
+  url: http://price.mofcom.gov.cn/datamofcom/front/price/pricequotation/priceQueryList
+  headers:
+    Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+  body:
+    seqno: 128
+    startTime: 20011003
+    endTime: 20221014
+    pageNumber: 1
+    pageSize: 15
+
+secondCode:
+  method: POST
+  url: http://price.mofcom.gov.cn/datamofcom/front/price/pricequotation/getSecondCate
+  headers:
+    Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+
+stack:
+  method: GET
+  url: https://www.zsxg.cn/api/v2/capital/info
+  # headers:
+  #     user-agent: Aloha
+  params:
+    code: 600019.SH
+    yearNum: 12
