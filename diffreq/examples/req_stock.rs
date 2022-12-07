@@ -1,3 +1,5 @@
+use anyhow::Result;
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::value;
 
@@ -40,31 +42,13 @@ pub struct Rps {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Build the client using the builder pattern
     let client = reqwest::Client::builder().build()?;
-
-    // Perform the actual execution of the network request
-    let res = client
-        .get("https://www.zsxg.cn/api/v2/capital/info?code=600039.SH&yearNum=2")
-        .send()
-        .await?;
-
-    // Parse the response body as Json in this case
-    let value: value::Value = serde_json::from_str(&res.text().await?)?;
-
-    // print the comment_new field
-    let comment_new: String = value["datas"]["comment_new"].to_string();
-    println!("comment_new: {}\n", comment_new);
-    // print the segments field
-    let segments_str: String = value["datas"]["segments"].to_string();
-    println!("segments: {}\n", segments_str);
-    // print the boll field
-    let boll_str: String = value["datas"]["boll"].to_string();
-    println!("boll: {}\n", boll_str);
-    // print the briefing field
-    let briefing_str: String = value["datas"]["briefing"].to_string();
-    println!("briefing: {}\n", briefing_str);
-    // print the indexList field
-    let index_list_str: String = value["datas"]["indexList"].to_string();
-    println!("indexList: {}\n", index_list_str);
+    let stock_codes = include_str!("../fixtures/SH.txt")
+        .lines()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+    for stock_code in stock_codes {
+        get_stock_info(&stock_code, &client).await?;
+    }
 
     // // let rps_map: RpsMap = serde_json::from_value(value["datas"]["rpsMap"]);
     // // get rps_map for value["datas"]["rpsMap"]
@@ -87,4 +71,41 @@ fn get_time_str(val: u64) -> String {
     // Formats the combined date and time with the specified format string.
     let timestamp_str = datetime.format("%Y%m%d").to_string();
     timestamp_str
+}
+
+async fn get_stock_info(stock_code: &str, client: &Client) -> Result<()> {
+    let url = format!(
+        "https://www.zsxg.cn/api/v2/capital/info?code={}&yearNum=2",
+        stock_code
+    );
+    // Perform the actual execution of the network request
+    let res = client.get(url.as_str()).send().await?;
+
+    // Parse the response body as Json in this case
+    let value: value::Value = serde_json::from_str(&res.text().await?)?;
+
+    // print the comment_new field
+    let comment_new: String = value["datas"]["comment_new"].to_string();
+    let segments_str: String = value["datas"]["segments"].to_string();
+    let boll_str: String = value["datas"]["boll"].to_string();
+    let briefing_str: String = value["datas"]["briefing"].to_string();
+    let index_list_str: String = value["datas"]["indexList"].to_string();
+
+    if briefing_str.contains("大豆") {
+        println!("stock code:{} comment_new: {}\n", stock_code, comment_new);
+        // print the segments field
+
+        println!("stock code:{} segments: {}\n", stock_code, segments_str);
+        // print the boll field
+
+        println!("stock code:{} boll: {}\n", stock_code, boll_str);
+        // print the briefing field
+
+        println!("stock code:{} briefing: {}\n", stock_code, briefing_str);
+        // print the indexList field
+
+        println!("stock code:{} indexList: {}\n", stock_code, index_list_str);
+    }
+
+    Ok(())
 }
