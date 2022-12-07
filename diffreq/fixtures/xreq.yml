@@ -33,3 +33,12 @@ addfield:
       subFieldList: []
       convertField: receiveruserid_gdt
       changedConvertField: {}
+
+stock1:
+  method: GET
+  url: https://www.zsxg.cn/api/v2/capital/info
+    # headers:
+    #     user-agent: Aloha
+  params:
+    code: 688123.SH
+    yearNum: 12
