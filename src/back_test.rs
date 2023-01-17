@@ -4,6 +4,14 @@ use crate::{TargetTrade, TradeRecord, TradeResult, TradeType};
 use chrono::NaiveDate;
 use color_eyre::eyre::{eyre, Result};
 use serde::Deserialize;
+use tracing::{error, info};
+
+#[derive(Debug, Clone)]
+pub struct BackTestMarketInfo {
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub market_info_map: HashMap<NaiveDate, Vec<MarketInfo>>,
+}
 
 /// 市场信息，会按照日期进行回放
 #[derive(Debug, Clone, Default)]
@@ -23,14 +31,14 @@ pub struct StockDetailInfo {
     pub chg: f64,
     pub percent: f64,
     pub turnoverrate: f64,
-    pub amount: f64,
+    pub amount: Option<f64>,
     pub volume_post: Option<f64>,
     pub amount_post: Option<f64>,
-    pub pe: f64,
-    pub pb: f64,
-    pub ps: f64,
-    pub pcf: f64,
-    pub market_capital: f64,
+    pub pe: Option<f64>,
+    pub pb: Option<f64>,
+    pub ps: Option<f64>,
+    pub pcf: Option<f64>,
+    pub market_capital: Option<f64>,
     pub balance: Option<f64>,
     pub hold_volume_cn: Option<f64>,
     pub hold_ratio_cn: Option<f64>,
@@ -325,8 +333,57 @@ impl TradeBackTestResult {
         // 只用市场信息，更新持仓信息
         self.position_info.update_by_market_info(market_info)?;
 
-        // 更新最终的现金
+        // todo 更新最终的现金
 
         Ok(())
+    }
+}
+
+impl BackTestMarketInfo {
+    pub fn new(
+        s_date: &str,
+        e_date: &str,
+        csv_data_path_pre: &str,
+        stock_codes: &[String],
+    ) -> Result<Self> {
+        let start_date = NaiveDate::parse_from_str(s_date, "%Y-%m-%d")?;
+        let end_date = NaiveDate::parse_from_str(e_date, "%Y-%m-%d")?;
+        let mut market_info_map: HashMap<NaiveDate, Vec<MarketInfo>> = HashMap::new();
+
+        for st_code in stock_codes {
+            let csv_data_path = format!("{}{}.csv", csv_data_path_pre, st_code);
+            info!("to read csv_data_path: {}", csv_data_path);
+            let csv_reader = csv::Reader::from_path(csv_data_path);
+            if let Err(e) = csv_reader {
+                error!(
+                    "read csv_data_path: {}{}.csv error: {:?}",
+                    csv_data_path_pre, st_code, e
+                );
+                continue;
+            }
+            for result in csv_reader.unwrap().deserialize() {
+                let record: StockDetailInfo = result?;
+                let date = NaiveDate::parse_from_str(&record.timestamp, "%Y-%m-%d")?;
+                if date < start_date || date > end_date {
+                    continue;
+                }
+                let market_info = MarketInfo {
+                    stock_code: st_code.clone(),
+                    detail_info: record,
+                };
+
+                let date_data = market_info_map.get_mut(&date);
+                if let Some(date_data) = date_data {
+                    date_data.push(market_info);
+                } else {
+                    market_info_map.insert(date, vec![market_info]);
+                }
+            }
+        }
+        Ok(BackTestMarketInfo {
+            market_info_map,
+            start_date,
+            end_date,
+        })
     }
 }

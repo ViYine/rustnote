@@ -10,3 +10,6 @@ chrono = "0.4.23"
 color-eyre = "0.6.2"
 csv = "1.1.6"
 serde = { version = "1.0.152", features = ["derive"] }
+tokio = { version = "1.21.1", features = ["full"] }
+tracing = "0.1.37"
+tracing-subscriber = "0.3.16"
