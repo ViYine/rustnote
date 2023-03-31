@@ -1,0 +1,20 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pandas = "*"
+dash = "*"
+jupyter = "*"
+numpy = "*"
+scipy = "*"
+jupyter-dash = "*"
+dash-bootstrap-components = "*"
+sd-material-ui = "*"
+httpx = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"

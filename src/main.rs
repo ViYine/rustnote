@@ -4,7 +4,7 @@ use std::time::Instant;
 
 use axum::extract::Extension;
 use axum::http::StatusCode;
-use axum::response::Response;
+use axum::response::{Response, Html};
 use axum::Json;
 use axum::{response::IntoResponse, routing::get, Router, Server};
 use color_eyre::Report;
@@ -30,12 +30,46 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+#[axum::debug_handler]
+async fn index_html() -> impl IntoResponse {
+    let markup = tokio::fs::read_to_string("index/index.html").await.unwrap();
+
+    Html(markup)
+}
+
+
+#[axum::debug_handler]
+async fn index_mjs() -> impl IntoResponse {
+    let markup = tokio::fs::read_to_string("index/index.mjs").await.unwrap();
+
+    Response::builder()
+        .header("content-type", "application/javascript;charset=utf-8")
+        .body(markup)
+        .unwrap()
+}
+
+#[axum::debug_handler]
+async fn index_css() -> impl IntoResponse {
+    let markup = tokio::fs::read_to_string("index/index.css").await.unwrap();
+
+    Response::builder()
+        .header("content-type", "text/css;charset=utf-8")
+        .body(markup)
+        .unwrap()
+}
+
 async fn run_server() -> Result<(), Box<dyn Error>> {
     let addr = "0.0.0.0:3779".parse()?;
     info!("Listening on http://{}", addr);
 
     let app = Router::new()
-        .route("/", get(root))
+    // route / for get the index.html
+        .route("/", get(index_html))
+        // route /index.mjs for get the index.mjs
+        .route("/index.mjs", get(index_mjs))
+        // route /index.css for get the index.css
+        .route("/index.css", get(index_css))
+        // .route("/", get(root))
         .layer(
             ServiceBuilder::new().layer(TraceLayer::new_for_http()), // .into_inner(), // into_inner 可能影响性能
         )

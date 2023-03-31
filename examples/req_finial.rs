@@ -111,6 +111,22 @@ async fn download_parallel(codes: Vec<String>) -> Result<()> {
                     let income_data = fetch_income_data(&client, &code).await?;
                     income_data.to_csv_file(&format!("finial_data/{}_income.csv", code))?;
                 } 
+                let incode_one_data_file = format!("finial_data/{}_income_one.csv", code);
+                let metadata = fs::metadata(&incode_one_data_file);
+                if metadata.is_ok() {
+                    let metadata = metadata.unwrap();
+                    if metadata.modified()?.elapsed()?.as_secs() < 3600 && metadata.is_file() {
+                        info!("file: {} already exists, skip", incode_one_data_file);
+                    } else {
+                        info!("file: {} not exists, download", incode_one_data_file);
+                        let income_one_data = fetch_income_one_data(&client, &code).await?;
+                        income_one_data.to_csv_file(&format!("finial_data/{}_income_one.csv", code))?;
+                    }
+                } else {
+                    info!("file: {} not exists, download", incode_one_data_file);
+                    let income_one_data = fetch_income_one_data(&client, &code).await?;
+                    income_one_data.to_csv_file(&format!("finial_data/{}_income_one.csv", code))?;
+                }
 
                 let asset_data_file = format!("finial_data/{}_asset.csv", code);
                 let metadata = fs::metadata(&asset_data_file);
@@ -144,6 +160,22 @@ async fn download_parallel(codes: Vec<String>) -> Result<()> {
                     info!("file: {} not exists, download", cash_data_file);
                     let cash_data = fetch_cash_data(&client, &code).await?;
                     cash_data.to_csv_file(&format!("finial_data/{}_cash.csv", code))?;
+                }
+                let cash_one_data_file = format!("finial_data/{}_cash_one.csv", code);
+                let metadata = fs::metadata(&cash_one_data_file);
+                if metadata.is_ok() {
+                    let metadata = metadata.unwrap();
+                    if metadata.modified()?.elapsed()?.as_secs() < 3600 && metadata.is_file() {
+                        info!("file: {} already exists, skip", cash_one_data_file);
+                    } else {
+                        info!("file: {} not exists, download", cash_one_data_file);
+                        let cash_one_data = fetch_cash_one_data(&client, &code).await?;
+                        cash_one_data.to_csv_file(&format!("finial_data/{}_cash_one.csv", code))?;
+                    }
+                } else {
+                    info!("file: {} not exists, download", cash_one_data_file);
+                    let cash_one_data = fetch_cash_one_data(&client, &code).await?;
+                    cash_one_data.to_csv_file(&format!("finial_data/{}_cash_one.csv", code))?;
                 }
                 
                 Ok::<(), color_eyre::eyre::Error>(())
@@ -211,6 +243,30 @@ async fn fetch_income_data(
     Ok(data)
 }
 
+
+// 单季度收入数据
+async fn fetch_income_one_data(
+    client: &ClientWithMiddleware,
+    stock_code: &str,
+) -> Result<FinalDataItem> {
+    let url = format!("https://stock.zsxg.cn/api/v2/quarter/depthData?code={}&type=income&style=2&periods=0331%2C0630%2C0930%2C1231", stock_code);
+    let resp = client
+    .get(url)
+    .header("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36").header("Content-Type", "application/json;charset=UTF-8")
+    .send().await?;
+    let status_res = resp.error_for_status();
+    // if let Err(e) = status_res {
+    //     // sleep 1s and retry
+    //     tokio::time::sleep(Duration::from_millis(1000)).await;
+    //     return fetch_income_data(client, stock_code).await;
+    // }
+    let rtext = status_res?.text().await?;
+    let data: FinalDataItem = serde_json::from_str(&rtext)?;
+    Ok(data)
+}
+
+
+
 async fn fetch_asset_data(
     client: &ClientWithMiddleware,
     stock_code: &str,
@@ -227,6 +283,24 @@ async fn fetch_asset_data(
 
 async fn fetch_cash_data(client: &ClientWithMiddleware, stock_code: &str) -> Result<FinalDataItem> {
     let url = format!("https://stock.zsxg.cn/api/v2/quarter/depthData?code={}&type=cashflow&style=1&periods=0331%2C0630%2C0930%2C1231", stock_code);
+    let resp = client
+    .get(url)
+    .header("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36").header("Content-Type", "application/json;charset=UTF-8")
+    .send().await?;
+    let status_res = resp.error_for_status();
+    // if let Err(e) = status_res {
+    //     // sleep 1s and retry
+    //     tokio::time::sleep(Duration::from_millis(1000)).await;
+    //     return fetch_cash_data(client, stock_code).await;
+    // }
+    let rtext = status_res?.text().await?;
+    let data: FinalDataItem = serde_json::from_str(&rtext)?;
+    Ok(data)
+}
+
+
+async fn fetch_cash_one_data(client: &ClientWithMiddleware, stock_code: &str) -> Result<FinalDataItem> {
+    let url = format!("https://stock.zsxg.cn/api/v2/quarter/depthData?code={}&type=cashflow&style=2&periods=0331%2C0630%2C0930%2C1231", stock_code);
     let resp = client
     .get(url)
     .header("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36").header("Content-Type", "application/json;charset=UTF-8")

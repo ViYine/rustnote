@@ -3,9 +3,12 @@ use reqwest::Client;
 use tracing::info;
 
 use std::{
-    fs::File,
-    time::{SystemTime, UNIX_EPOCH}, path::Path,
+    fs::{File, self},
+    time::{SystemTime, UNIX_EPOCH, Duration}, path::Path,
 };
+
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 
 use lazy_static::lazy_static;
 lazy_static! {
@@ -97,18 +100,23 @@ async fn main() -> Result<()> {
 
     // merge sh and sz codes
     let mut codes = sh_codes;
+    let st_time = get_cur_time()?;
     codes.extend(sz_codes);
     info!(
         "start download all codes, total: {}, cur_time:{}",
         codes.len(),
-        get_cur_time()?
+        st_time
     );
 
     download_parallel(codes, cookie_str).await?;
 
     // wait all tasks finish
     // calculate time cost
-    info!("time cost: {}", get_cur_time()?);
+    // convert  timestr to i64
+    let st_time = st_time.parse::<i64>()?;
+    let ed_time = get_cur_time()?;
+    let ed_timei = ed_time.parse::<i64>()?;
+    info!("time cost: {} seconds", (ed_timei - st_time)/ 1000);
     // tokio::spawn(async move {
     // for code in codes {
     //     let client = client.clone();
@@ -124,7 +132,13 @@ async fn main() -> Result<()> {
 async fn download_parallel(codes: Vec<String>, cookie: &'static str) -> Result<()> {
     // all codes download use function: get_stock_data_to_csv
     // use tokio::spawn to download codes in parallel
-    let client = Client::new();
+    let retry_policy = ExponentialBackoff::builder()
+    .backoff_exponent(3)
+    .retry_bounds(Duration::from_secs(1), Duration::from_secs(60))
+    .build_with_max_retries(3);
+    let client = ClientBuilder::new(reqwest::Client::new())
+        .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+        .build();
     let futures: Vec<_> = codes
         .into_iter()
         .map(|code| {
@@ -139,13 +153,15 @@ async fn download_parallel(codes: Vec<String>, cookie: &'static str) -> Result<(
     }
     Ok(())
 }
-async fn get_stock_data_to_csv(client: &Client, symbol: &str, cookie_str: &str) -> Result<()> {
+async fn get_stock_data_to_csv(client: &ClientWithMiddleware, symbol: &str, cookie_str: &str) -> Result<()> {
     info!("start download {}", symbol);
     let filename = format!("kline_out/{}.csv", symbol);
-    if Path::new(&filename).exists() {
-        info!("{} already exists, skip", symbol);
+    let metadata = fs::metadata(&filename)?;
+    if metadata.modified()?.elapsed()?.as_secs() < 3600 && metadata.is_file() {
+        info!("file: {} already exists, skip", filename);
         return Ok(());
     }
+        
     let cur_time = get_cur_time()?;
 
     let mut api_url = url::Url::parse("https://stock.xueqiu.com/v5/stock/chart/kline.json?&period=day&type=before&indicator=kline,pe,pb,ps,pcf,market_capital,agt,ggt,balance")?;

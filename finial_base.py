@@ -59,6 +59,8 @@ def cal_base_finial_data(st_code):
     finial_df = finial_df.sort_index(ascending=False)
     # rename col '其他应收款（合计）'，固定资产（合计），在建工程（合计）,'长期应付款（合计）' 去掉括号以及合计
     finial_df.rename(columns={'其他应收款（合计）':'其他应收款','固定资产（合计）':'固定资产','在建工程（合计）':'在建工程', '长期应付款（合计）':'长期应付款' }, inplace=True)
+    #  rename col contains * to 去掉*
+    
 
     #  息税前利润 = 利润总额 + 利息费用
     finial_df["息税前利润EBIT"] = finial_df["利润总额*"] + finial_df["其中：利息费用"]
@@ -154,12 +156,17 @@ def cal_base_finial_data(st_code):
     # 权益收益率 ROE = 净利润/ 平均净资产(所有者权益合计+期初所有者权益合计)/2
     finial_df["权益收益率ROE"] = finial_df["净利润*"] / ((finial_df["所有者权益合计*"] + finial_df["所有者权益合计*_期初"]) / 2)
     # 投资资本收益率 ROIC = 息税前利润*(1-所得税税率) / (固定资产+无形资产+流动资产-流动负债-现金)
-    finial_df["投资资本收益率ROIC"] = finial_df["息税前利润EBIT"] * (1 - finial_df["减：所得税"] / finial_df["营业总收入*"]) / (finial_df["固定资产"] + finial_df["无形资产"] + finial_df["流动资产总计*"] - finial_df["流动负债合计*"] - finial_df["货币资金"])
+    finial_df["投资资本收益率ROIC"] = finial_df["息税前利润EBIT"] * (1 - finial_df["减：所得税"] / finial_df["利润总额*"]) / (finial_df["固定资产"] + finial_df["无形资产"] + finial_df["流动资产总计*"] - finial_df["流动负债合计*"] - finial_df["货币资金"])
     # 经营性资产周转率 = 营业收入 / 平均净经营性资产
     finial_df["经营性资产周转率"] = finial_df["营业总收入*"] / ((finial_df["经营性净资产"] + finial_df["经营性净资产_期初"]) / 2)
     # ROE 净资产收益率 = 净利润/平均净资产 = 净利润/营业收入 * 营业收入/总资产 * 总资产/平均净资产
     # 权益乘数 = 总资产/平均净资产
     finial_df["权益乘数"] = finial_df["资产总计*"] / ((finial_df["所有者权益合计*"] + finial_df["所有者权益合计*_期初"]) / 2)
+
+    finial_df.rename(columns=lambda x: x.replace("*", ""), inplace=True)
+    # rename （ ） to ()
+    finial_df.rename(columns=lambda x: x.replace("（", "("), inplace=True)
+    finial_df.rename(columns=lambda x: x.replace("）", ")"), inplace=True)
 
     return finial_df.fillna(0)
 
